@@ -1,55 +1,64 @@
 import { User, LoginCredentials, RegisterCredentials } from '../types';
-import { storageService } from './storageService';
-
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { supabase } from './supabaseClient';
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<User> => {
-    await delay(800);
-    const users = storageService.getUsers();
-    const foundUser = users.find(
-      u => u.email === credentials.email && u.password === credentials.password
-    );
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
 
-    if (foundUser) {
-      const { password: _, ...userData } = foundUser;
-      storageService.setCurrentUser(userData);
-      return userData;
-    }
-    throw new Error('Invalid email or password');
+    if (error) throw error;
+    if (!data.user) throw new Error('No user found');
+
+    return {
+      id: data.user.id,
+      email: data.user.email || '',
+      name: data.user.user_metadata.full_name || 'User',
+      avatar: data.user.user_metadata.avatar_url || `https://i.pravatar.cc/150?u=${data.user.email}`,
+      role: 'EMPLOYEE',
+    };
   },
 
   register: async (credentials: RegisterCredentials): Promise<User> => {
-    await delay(1000);
-    const users = storageService.getUsers();
-    
-    if (users.some(u => u.email === credentials.email)) {
-      throw new Error('User already exists');
-    }
-
-    const newUser: User & { password?: string } = {
-      id: `u-${Math.random().toString(36).substr(2, 9)}`,
+    const { data, error } = await supabase.auth.signUp({
       email: credentials.email,
-      name: credentials.name,
       password: credentials.password,
-      role: 'EMPLOYEE',
-      avatar: `https://i.pravatar.cc/150?u=${credentials.email}`
-    };
+      options: {
+        data: {
+          full_name: credentials.name,
+          avatar_url: `https://i.pravatar.cc/150?u=${credentials.email}`,
+        },
+      },
+    });
 
-    storageService.saveUser(newUser);
-    const { password: _, ...userData } = newUser;
-    storageService.setCurrentUser(userData);
-    return userData;
+    if (error) throw error;
+    if (!data.user) throw new Error('Signup failed');
+
+    return {
+      id: data.user.id,
+      email: data.user.email || '',
+      name: data.user.user_metadata.full_name || credentials.name,
+      avatar: data.user.user_metadata.avatar_url || `https://i.pravatar.cc/150?u=${data.user.email}`,
+      role: 'EMPLOYEE',
+    };
   },
 
   logout: async (): Promise<void> => {
-    await delay(500);
-    storageService.setCurrentUser(null);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   },
 
   getCurrentUser: async (): Promise<User | null> => {
-    await delay(300);
-    return storageService.getCurrentUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+
+    return {
+      id: session.user.id,
+      email: session.user.email || '',
+      name: session.user.user_metadata.full_name || 'User',
+      avatar: session.user.user_metadata.avatar_url || `https://i.pravatar.cc/150?u=${session.user.email}`,
+      role: 'EMPLOYEE',
+    };
   }
 };
