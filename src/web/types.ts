@@ -1,10 +1,9 @@
-
-export type Role = 'EMPLOYEE' | 'ADMIN';
+export type Role = 'ADMIN' | 'EMPLOYEE';
 
 export interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
   role: Role;
   avatar: string;
 }
@@ -14,8 +13,17 @@ export interface AttendanceRecord {
   userId: string;
   userName: string;
   userAvatar: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   createdAt: string;
 }
 
-export type ViewState = 'WEEKLY_LIST' | 'ADMIN';
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterCredentials {
+  email: string;
+  name: string;
+  password: string;
+}

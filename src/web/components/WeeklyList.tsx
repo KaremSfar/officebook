@@ -1,17 +1,24 @@
 
 import React from 'react';
 import { AttendanceRecord, User } from '../types';
-import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
-import { UserPlus, UserMinus, CalendarDays } from 'lucide-react';
+import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { UserPlus, UserMinus, CalendarDays, Loader2 } from 'lucide-react';
 
 interface WeeklyListProps {
   currentUser: User;
   attendance: AttendanceRecord[];
   onJoin: (date: string) => void;
   onLeave: (date: string) => void;
+  isLoading?: boolean;
 }
 
-const WeeklyList: React.FC<WeeklyListProps> = ({ currentUser, attendance, onJoin, onLeave }) => {
+const WeeklyList: React.FC<WeeklyListProps> = ({ 
+  currentUser, 
+  attendance, 
+  onJoin, 
+  onLeave,
+  isLoading
+}) => {
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
 
@@ -71,17 +78,27 @@ const WeeklyList: React.FC<WeeklyListProps> = ({ currentUser, attendance, onJoin
                   isAttending ? (
                     <button 
                       onClick={() => onLeave(dateStr)}
-                      className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+                      disabled={isLoading}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100 disabled:opacity-50"
                     >
-                      <UserMinus size={14} />
+                      {isLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <UserMinus size={14} />
+                      )}
                       I'm not coming
                     </button>
                   ) : (
                     <button 
                       onClick={() => onJoin(dateStr)}
-                      className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                      disabled={isLoading}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 disabled:opacity-50"
                     >
-                      <UserPlus size={14} />
+                      {isLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <UserPlus size={14} />
+                      )}
                       I'll be in
                     </button>
                   )
