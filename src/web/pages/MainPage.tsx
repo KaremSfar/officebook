@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import WeeklyList from '../components/WeeklyList';
 import Navbar from '../components/Navbar';
+import ProfilePage from './ProfilePage';
 import { User } from '../types';
 import { Loader2 } from 'lucide-react';
 import { useAttendance, useMarkAttendance, useRemoveAttendance } from '../hooks/useAttendance';
@@ -12,6 +13,7 @@ interface MainPageProps {
 }
 
 const MainPage: React.FC<MainPageProps> = ({ user, onLogout }) => {
+	const [showProfile, setShowProfile] = useState(false);
 	const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
 	const startDate = useMemo(() => format(weekStart, 'yyyy-MM-dd'), [weekStart]);
 	const endDate = useMemo(() => format(addDays(weekStart, 4), 'yyyy-MM-dd'), [weekStart]);
@@ -33,9 +35,13 @@ const MainPage: React.FC<MainPageProps> = ({ user, onLogout }) => {
 		removeMutation.mutate({ userId: user.id, date });
 	};
 
+	if (showProfile) {
+		return <ProfilePage onBack={() => setShowProfile(false)} />;
+	}
+
 	return (
 		<div className="min-h-screen bg-gray-50">
-			<Navbar user={user} onLogout={onLogout} />
+			<Navbar user={user} onLogout={onLogout} onProfileClick={() => setShowProfile(true)} />
 
 			<main className="max-w-6xl mx-auto px-6 py-12">
 				{isLoading ? (
