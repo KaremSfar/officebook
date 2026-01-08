@@ -1,44 +1,80 @@
 import { AttendanceRecord } from '../types';
-import { storageService } from './storageService';
-
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { supabase } from './supabaseClient';
 
 export const attendanceService = {
   /**
    * Fetches attendance records within a specific date range.
-   * In a real API, this would be a GET /attendance?startDate=...&endDate=...
    */
   getAttendanceRange: async (startDate: string, endDate: string): Promise<AttendanceRecord[]> => {
-    await delay(600);
-    const allRecords = storageService.getAttendance();
-    
-    // Filter records within the range
-    return allRecords.filter(record => {
-      return record.date >= startDate && record.date <= endDate;
-    });
+    const { data, error } = await supabase
+      .from('attendance')
+      .select(`
+        id,
+        date,
+        created_at,
+        profiles (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (error) throw error;
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      userId: item.profiles.id,
+      userName: item.profiles.full_name,
+      userAvatar: item.profiles.avatar_url,
+      date: item.date,
+      createdAt: item.created_at
+    }));
   },
 
   /**
    * Marks attendance for a user on a specific date.
    */
   markAttendance: async (record: Omit<AttendanceRecord, 'id' | 'createdAt'>): Promise<AttendanceRecord> => {
-    await delay(500);
-    const newRecord: AttendanceRecord = {
-      ...record,
-      id: `att-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString()
+    const { data, error } = await supabase
+      .from('attendance')
+      .insert([
+        { user_id: record.userId, date: record.date }
+      ])
+      .select(`
+        id,
+        date,
+        created_at,
+        profiles (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      userId: data.profiles.id,
+      userName: data.profiles.full_name,
+      userAvatar: data.profiles.avatar_url,
+      date: data.date,
+      createdAt: data.created_at
     };
-    
-    storageService.saveAttendance(newRecord);
-    return newRecord;
   },
 
   /**
    * Removes an attendance record.
    */
   removeAttendance: async (userId: string, date: string): Promise<void> => {
-    await delay(400);
-    storageService.removeAttendance(userId, date);
+    const { error } = await supabase
+      .from('attendance')
+      .delete()
+      .match({ user_id: userId, date: date });
+
+    if (error) throw error;
   }
 };
