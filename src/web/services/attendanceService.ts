@@ -7,7 +7,7 @@ export const attendanceService = {
    */
   getAttendanceRange: async (startDate: string, endDate: string): Promise<AttendanceRecord[]> => {
     const records = await pb.collection('attendance').getFullList({
-      filter: `date >= "${startDate}" && date <= "${endDate}"`,
+      filter: `date >= "${startDate} 00:00:00.000Z" && date <= "${endDate} 23:59:59.999Z"`,
       expand: 'user_id',
     });
 
@@ -19,6 +19,7 @@ export const attendanceService = {
         ? pb.files.getUrl(item.expand.user_id, item.expand.user_id.avatar) 
         : `https://i.pravatar.cc/150?u=${item.user_id}`,
       date: item.date.split(' ')[0], // PocketBase dates might include time
+      comment: item.comment,
       createdAt: item.created
     }));
   },
@@ -29,7 +30,8 @@ export const attendanceService = {
   markAttendance: async (record: Omit<AttendanceRecord, 'id' | 'createdAt'>): Promise<AttendanceRecord> => {
     const data = {
       user_id: record.userId,
-      date: record.date,
+      date: `${record.date} 00:00:00.000Z`,
+      comment: record.comment,
     };
 
     const item = await pb.collection('attendance').create(data, {
@@ -44,6 +46,7 @@ export const attendanceService = {
         ? pb.files.getUrl(item.expand.user_id, item.expand.user_id.avatar) 
         : `https://i.pravatar.cc/150?u=${item.user_id}`,
       date: item.date.split(' ')[0],
+      comment: item.comment,
       createdAt: item.created
     };
   },

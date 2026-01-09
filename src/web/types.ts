@@ -14,6 +14,7 @@ export interface AttendanceRecord {
   userName: string;
   userAvatar: string;
   date: string;
+  comment?: string;
   createdAt: string;
 }
 

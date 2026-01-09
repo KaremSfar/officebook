@@ -22,12 +22,13 @@ const MainPage: React.FC<MainPageProps> = ({ user, onLogout }) => {
 	const markMutation = useMarkAttendance();
 	const removeMutation = useRemoveAttendance();
 
-	const handleJoin = (date: string) => {
+	const handleJoin = (date: string, comment?: string) => {
 		markMutation.mutate({
 			userId: user.id,
 			userName: user.name,
 			userAvatar: user.avatar,
 			date,
+			comment,
 		});
 	};
 

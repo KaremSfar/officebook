@@ -1,13 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AttendanceRecord, User } from '../types';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { UserPlus, UserMinus, CalendarDays, Loader2 } from 'lucide-react';
+import { UserPlus, UserMinus, CalendarDays, Loader2, ChevronDown, MessageSquare } from 'lucide-react';
 
 interface WeeklyListProps {
   currentUser: User;
   attendance: AttendanceRecord[];
-  onJoin: (date: string) => void;
+  onJoin: (date: string, comment?: string) => void;
   onLeave: (date: string) => void;
   isLoading?: boolean;
 }
@@ -19,10 +19,18 @@ const WeeklyList: React.FC<WeeklyListProps> = ({
   onLeave,
   isLoading
 }) => {
+  const [commentingDate, setCommentingDate] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
 
   const weekDays = Array.from({ length: 5 }).map((_, i) => addDays(weekStart, i));
+
+  const handleJoinWithComment = (date: string) => {
+    onJoin(date, comment);
+    setCommentingDate(null);
+    setComment('');
+  };
 
   return (
     <div className="space-y-8">
@@ -44,6 +52,7 @@ const WeeklyList: React.FC<WeeklyListProps> = ({
           const isAttending = dayAttendance.some((r) => r.userId === currentUser.id);
           const isPast = day < new Date(new Date().setHours(0,0,0,0));
           const isToday = isSameDay(day, today);
+          const isCommenting = commentingDate === dateStr;
 
           return (
             <div 
@@ -59,13 +68,22 @@ const WeeklyList: React.FC<WeeklyListProps> = ({
 
               <div className="flex-1 p-4 space-y-3 min-h-[200px]">
                 {dayAttendance.map((record) => (
-                  <div key={record.id} className="flex items-center gap-2 group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <img 
-                      src={record.userAvatar} 
-                      alt={record.userName} 
-                      className="w-8 h-8 rounded-full border border-white shadow-sm" 
-                    />
-                    <span className="text-sm font-medium text-gray-700 truncate">{record.userName}</span>
+                  <div key={record.id} className="flex flex-col gap-1 group animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src={record.userAvatar} 
+                        alt={record.userName} 
+                        className="w-8 h-8 rounded-full border border-white shadow-sm" 
+                      />
+                      <span className="text-sm font-medium text-gray-700 truncate">{record.userName}</span>
+                    </div>
+                    {record.comment && (
+                      <div className="ml-10 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                        <p className="text-[10px] text-gray-500 leading-tight italic">
+                          "{record.comment}"
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {dayAttendance.length === 0 && (
@@ -73,7 +91,7 @@ const WeeklyList: React.FC<WeeklyListProps> = ({
                 )}
               </div>
 
-              <div className="p-4 pt-0">
+              <div className="p-4 pt-0 space-y-2">
                 {!isPast && (
                   isAttending ? (
                     <button 
@@ -89,18 +107,61 @@ const WeeklyList: React.FC<WeeklyListProps> = ({
                       I'm not coming
                     </button>
                   ) : (
-                    <button 
-                      onClick={() => onJoin(dateStr)}
-                      disabled={isLoading}
-                      className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 disabled:opacity-50"
-                    >
-                      {isLoading ? (
-                        <Loader2 size={14} className="animate-spin" />
+                    <div className="relative">
+                      {isCommenting ? (
+                        <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                          <textarea
+                            autoFocus
+                            placeholder="Add a comment..."
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            className="w-full p-2 text-xs border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none resize-none"
+                            rows={2}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleJoinWithComment(dateStr)}
+                              disabled={isLoading}
+                              className="flex-1 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCommentingDate(null);
+                                setComment('');
+                              }}
+                              className="px-3 py-2 text-xs font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       ) : (
-                        <UserPlus size={14} />
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => onJoin(dateStr)}
+                            disabled={isLoading}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 disabled:opacity-50"
+                          >
+                            {isLoading ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <UserPlus size={14} />
+                            )}
+                            I'll be in
+                          </button>
+                          <button
+                            onClick={() => setCommentingDate(dateStr)}
+                            disabled={isLoading}
+                            className="px-2 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 disabled:opacity-50"
+                            title="Comment and attend"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                        </div>
                       )}
-                      I'll be in
-                    </button>
+                    </div>
                   )
                 )}
               </div>
