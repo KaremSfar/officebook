@@ -16,7 +16,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onProfileClick }) => {
           <div className="bg-blue-600 p-2 rounded-lg text-white">
             <Building size={20} />
           </div>
-          <span className="text-xl font-black text-gray-900">OfficeBook</span>
+          <span className="text-xl font-black text-gray-900">Birou - Ijew aad</span>
         </div>
 
         <div className="flex items-center gap-4">
