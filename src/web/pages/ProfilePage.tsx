@@ -87,7 +87,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             <div className="relative -mt-16 mb-8 flex justify-center">
               <div className="relative">
                 <img
-                  src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=random`}
+                  src={profile?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || 'User')}&background=random`}
                   alt="Profile"
                   className="w-32 h-32 rounded-full border-4 border-white object-cover bg-gray-100 shadow-lg"
                 />
