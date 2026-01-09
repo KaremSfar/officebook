@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useUser, useLogout } from './hooks/useAuth';
-import { supabase } from './services/supabaseClient';
+import { pb } from './services/pocketbaseClient';
 import AuthPage from './pages/AuthPage';
 import MainPage from './pages/MainPage';
 
@@ -21,11 +21,11 @@ const AppContent: React.FC = () => {
   const qc = useQueryClient();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const unsubscribe = pb.authStore.onChange(() => {
       qc.invalidateQueries({ queryKey: ['user'] });
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, [qc]);
 
   if (isLoading) {

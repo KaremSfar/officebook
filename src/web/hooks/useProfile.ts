@@ -29,11 +29,11 @@ export const useProfile = () => {
   const uploadAvatarMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error('User not authenticated');
-      const avatarUrl = await profileService.uploadAvatar(user.id, file);
-      return profileService.updateProfile(user.id, { avatar_url: avatarUrl });
+      return profileService.uploadAvatar(user.id, file);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     },
   });
 

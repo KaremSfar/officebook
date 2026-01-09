@@ -1,56 +1,44 @@
-import { supabase } from './supabaseClient';
+import { pb } from './pocketbaseClient';
 
 export interface Profile {
   id: string;
   full_name: string | null;
-  avatar_url: string | null;
+  avatar: string | null;
   updated_at?: string;
 }
 
 export const profileService = {
   async getProfile(userId: string): Promise<Profile | null> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error) throw error;
-    return data;
+    const record = await pb.collection('users').getOne(userId);
+    
+    return {
+      id: record.id,
+      full_name: record.full_name,
+      avatar: record.avatar ? pb.files.getUrl(record, record.avatar) : null,
+      updated_at: record.updated,
+    };
   },
 
   async updateProfile(userId: string, updates: Partial<Profile>) {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    if (error) throw error;
+    // PocketBase handles updated_at automatically
+    await pb.collection('users').update(userId, updates);
   },
 
   async updatePassword(password: string) {
-    const { error } = await supabase.auth.updateUser({
+    const userId = pb.authStore.model?.id;
+    if (!userId) throw new Error('Not authenticated');
+    
+    await pb.collection('users').update(userId, {
       password: password,
+      passwordConfirm: password,
     });
-
-    if (error) throw error;
   },
 
   async uploadAvatar(userId: string, file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const formData = new FormData();
+    formData.append('avatar', file);
 
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-    return data.publicUrl;
+    const record = await pb.collection('users').update(userId, formData);
+    return pb.files.getUrl(record, record.avatar);
   },
 };

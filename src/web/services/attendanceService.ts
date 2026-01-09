@@ -1,35 +1,25 @@
 import { AttendanceRecord } from '../types';
-import { supabase } from './supabaseClient';
+import { pb } from './pocketbaseClient';
 
 export const attendanceService = {
   /**
    * Fetches attendance records within a specific date range.
    */
   getAttendanceRange: async (startDate: string, endDate: string): Promise<AttendanceRecord[]> => {
-    const { data, error } = await supabase
-      .from('attendance')
-      .select(`
-        id,
-        date,
-        created_at,
-        profiles (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .gte('date', startDate)
-      .lte('date', endDate);
+    const records = await pb.collection('attendance').getFullList({
+      filter: `date >= "${startDate}" && date <= "${endDate}"`,
+      expand: 'user_id',
+    });
 
-    if (error) throw error;
-
-    return (data || []).map((item: any) => ({
+    return records.map((item: any) => ({
       id: item.id,
-      userId: item.profiles.id,
-      userName: item.profiles.full_name,
-      userAvatar: item.profiles.avatar_url,
-      date: item.date,
-      createdAt: item.created_at
+      userId: item.user_id,
+      userName: item.expand?.user_id?.full_name || 'Unknown',
+      userAvatar: item.expand?.user_id?.avatar 
+        ? pb.files.getUrl(item.expand.user_id, item.expand.user_id.avatar) 
+        : `https://i.pravatar.cc/150?u=${item.user_id}`,
+      date: item.date.split(' ')[0], // PocketBase dates might include time
+      createdAt: item.created
     }));
   },
 
@@ -37,32 +27,24 @@ export const attendanceService = {
    * Marks attendance for a user on a specific date.
    */
   markAttendance: async (record: Omit<AttendanceRecord, 'id' | 'createdAt'>): Promise<AttendanceRecord> => {
-    const { data, error } = await supabase
-      .from('attendance')
-      .insert([
-        { user_id: record.userId, date: record.date }
-      ])
-      .select(`
-        id,
-        date,
-        created_at,
-        profiles (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .single();
+    const data = {
+      user_id: record.userId,
+      date: record.date,
+    };
 
-    if (error) throw error;
+    const item = await pb.collection('attendance').create(data, {
+      expand: 'user_id',
+    });
 
     return {
-      id: data.id,
-      userId: data.profiles.id,
-      userName: data.profiles.full_name,
-      userAvatar: data.profiles.avatar_url,
-      date: data.date,
-      createdAt: data.created_at
+      id: item.id,
+      userId: item.user_id,
+      userName: item.expand?.user_id?.full_name || 'Unknown',
+      userAvatar: item.expand?.user_id?.avatar 
+        ? pb.files.getUrl(item.expand.user_id, item.expand.user_id.avatar) 
+        : `https://i.pravatar.cc/150?u=${item.user_id}`,
+      date: item.date.split(' ')[0],
+      createdAt: item.created
     };
   },
 
@@ -70,11 +52,14 @@ export const attendanceService = {
    * Removes an attendance record.
    */
   removeAttendance: async (userId: string, date: string): Promise<void> => {
-    const { error } = await supabase
-      .from('attendance')
-      .delete()
-      .match({ user_id: userId, date: date });
+    // PocketBase delete usually requires the record ID. 
+    // Since we have a unique index on user_id and date, we first find the record.
+    const record = await pb.collection('attendance').getFirstListItem(
+      `user_id = "${userId}" && date ~ "${date}"`
+    );
 
-    if (error) throw error;
+    if (record) {
+      await pb.collection('attendance').delete(record.id);
+    }
   }
 };
