@@ -1,0 +1,9 @@
+# PocketBase data directory
+pb_data/
+
+# PocketBase executable (if downloaded locally)
+pocketbase
+
+# OS generated files
+.DS_Store
+Thumbs.db
